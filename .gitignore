@@ -1,5 +1,6 @@
-/src/instance/app.db
+/src/instance
 client_secret.json
+venv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
