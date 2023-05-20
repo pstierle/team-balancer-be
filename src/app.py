@@ -14,7 +14,7 @@ import flask_admin.contrib.sqla
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "auto-team-balancer"
+app.secret_key = "team-balancer"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config['BASIC_AUTH_USERNAME'] = environ['basic_auth_username']
 app.config['BASIC_AUTH_PASSWORD'] = environ['basic_auth_password']
