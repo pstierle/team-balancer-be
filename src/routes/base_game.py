@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from util import auth_guard
 from database import db, Player
-from util import players_to_games_by_base_game, sum_split, players_from_games, base_games_with_maps
+from util import players_to_games_by_base_game, sum_split, players_from_games, base_games_with_images
 import random
 
 base_game_router = Blueprint('base_game_router', __name__)
@@ -10,7 +10,7 @@ base_game_router = Blueprint('base_game_router', __name__)
 @base_game_router.route('/base-game', methods=["GET"])
 @auth_guard()
 def get_players():
-    return base_games_with_maps(request.host_url)
+    return base_games_with_images(request.host_url)
 
 
 @base_game_router.route('/base-game/random-map', methods=["POST"])

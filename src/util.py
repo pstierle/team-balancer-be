@@ -6,14 +6,16 @@ from functools import wraps
 from os import environ, listdir, path
 from serializers import serialize_player
 from constants import base_games
+from database import User
 
 
-def base_games_with_maps(host_url):
+def base_games_with_images(host_url):
     base_games_with_maps = base_games
     static_folder_path = path.abspath(
         path.join(path.dirname(__file__), "..", "src",  "static"))
     for base_game in base_games:
         maps = []
+        base_game['icon'] = f"{host_url}/static/icons/{base_game['name']}.png"
         mapImageFiles = listdir(
             path.join(static_folder_path, base_game['name']))
         idx = 0
@@ -84,7 +86,12 @@ def auth_guard():
             try:
                 decoded = jwt.decode(
                     token, environ["jwt_key"], algorithms=["HS256"])
+
+                user = User.query.filter(User.id == decoded['user_id']).first()
+
                 if decoded['expires_at'] < get_date():
+                    flask.abort(401)
+                elif user == None:
                     flask.abort(401)
                 else:
                     flask.request.environ['user_id'] = decoded['user_id']
@@ -93,17 +100,6 @@ def auth_guard():
             return f(*args, **kwargs)
         return __auth_guard
     return _auth_guard
-
-
-def get_or_create(session, model, **kwargs):
-    instance = session.query(model).filter_by(**kwargs).first()
-    if instance:
-        return instance
-    else:
-        instance = model(**kwargs)
-        session.add(instance)
-        session.commit()
-        return instance
 
 
 def create_if_not_exists(session, model, **kwargs):

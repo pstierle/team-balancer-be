@@ -22,6 +22,7 @@ def get_players():
 def delete_player():
     body = request.get_json()
     Player.query.filter(Player.id == body['id']).delete()
+    Game.query.filter(Game.player_id == body['id']).delete()
     db.session.commit()
     return Response(status=200)
 

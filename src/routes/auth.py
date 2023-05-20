@@ -4,7 +4,7 @@ import uuid
 from google_auth_oauthlib.flow import Flow
 from os import path, environ
 from flask import session, redirect, request, Blueprint
-from util import get_or_create, get_date
+from util import get_date
 from database import db, User
 
 auth_router = Blueprint('auth_router', __name__)
@@ -40,7 +40,11 @@ def google_callback():
         "https://oauth2.googleapis.com/tokeninfo?id_token=" + credentials.id_token)
     response_dict = response.json()
     email = response_dict.get('email')
-    user = get_or_create(db.session, User, email=email, id=str(uuid.uuid4()))
+    user = User.query.filter(User.email == email).first()
+    if user == None:
+        user = User(email=email, id=str(uuid.uuid4()))
+        session.add(user)
+        db.session.commit()
     token = jwt.encode(
         {"user_id": user.id, "expires_at": get_date(1)}, environ["jwt_key"], algorithm="HS256")
     redirect_url = 'http://localhost:4200/auth/' + token
