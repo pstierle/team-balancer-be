@@ -1,6 +1,7 @@
 import requests
 import jwt
 import uuid
+import json
 from google_auth_oauthlib.flow import Flow
 from os import path, environ
 from flask import session, redirect, request, Blueprint
@@ -9,11 +10,19 @@ from database import db, User
 
 auth_router = Blueprint('auth_router', __name__)
 
-client_secrets_file = path.abspath(
-    path.join(path.dirname(__file__), "..", "..", "client_secret.json"))
-
-flow = Flow.from_client_secrets_file(
-    client_secrets_file=client_secrets_file,
+flow = Flow.from_client_config(
+    client_config={
+        "web": {
+        "client_id": environ['oauth_client_id'],
+        "project_id": environ['oauth_project_id'],
+        "auth_uri": environ['oauth_auth_uri'],
+        "token_uri": environ['oauth_token_uri'],
+        "auth_provider_x509_cert_url": environ['oauth_auth_provider_x509_cert_url'],
+        "client_secret": environ['oauth_client_secret'],
+        "redirect_uris": [environ['oauth_redirect_uri']],
+        "javascript_origins": [environ['oauth_javascript_origin']]
+        } 
+    },
     scopes=[
         "https://www.googleapis.com/auth/userinfo.email",
         "openid"
@@ -43,9 +52,9 @@ def google_callback():
     user = User.query.filter(User.email == email).first()
     if user == None:
         user = User(email=email, id=str(uuid.uuid4()))
-        session.add(user)
+        db.session.add(user)
         db.session.commit()
     token = jwt.encode(
         {"user_id": user.id, "expires_at": get_date(1)}, environ["jwt_key"], algorithm="HS256")
-    redirect_url = 'http://localhost:4200/auth/' + token
+    redirect_url = f'{environ["frontend_url"]}/auth/{token}'
     return redirect(redirect_url, code=302)
