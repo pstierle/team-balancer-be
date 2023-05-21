@@ -7,6 +7,7 @@ from os import environ, listdir, path
 from serializers import serialize_player
 from constants import base_games
 from database import User
+from database import Player, Game
 
 
 def base_games_with_images(host_url):
@@ -60,8 +61,9 @@ def players_to_games_by_base_game(players, base_game_id=0):
     return games_by_base_game
 
 
-def players_from_games(players, games):
-    found_players = []
+def players_from_games(players: list[Player],
+                       games: list[Game]) -> list[Player]:
+    found_players: list[Player] = []
 
     for game in games:
         found_player = next(filter(lambda x: x.id == game.player_id, players))

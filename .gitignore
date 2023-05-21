@@ -1,6 +1,8 @@
 /src/instance
 venv
 .env
+.vscode
+client_secret.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

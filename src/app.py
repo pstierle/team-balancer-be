@@ -16,8 +16,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = "team-balancer"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
-app.config['BASIC_AUTH_USERNAME'] = environ['basic_auth_username']
-app.config['BASIC_AUTH_PASSWORD'] = environ['basic_auth_password']
+app.config["BASIC_AUTH_USERNAME"] = environ["basic_auth_username"]
+app.config["BASIC_AUTH_PASSWORD"] = environ["basic_auth_password"]
 
 app.register_blueprint(player_router)
 app.register_blueprint(auth_router)
