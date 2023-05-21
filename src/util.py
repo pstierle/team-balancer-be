@@ -77,16 +77,6 @@ def players_from_games(players: list[Player], games: list[Game]) -> list[Player]
     return found_players
 
 
-def sum_players_elo(players, base_game_id):
-    player_games = list(map(lambda x: x.games, players))
-    player_games_by_base_game = [
-        game
-        for game in list(itertools.chain(*player_games))
-        if game.base_game_id == base_game_id
-    ]
-    return sum(map(lambda x: x.elo, player_games_by_base_game))
-
-
 def auth_guard():
     def _auth_guard(f):
         @wraps(f)

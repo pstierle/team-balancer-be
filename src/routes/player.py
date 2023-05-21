@@ -2,7 +2,7 @@ import uuid
 from flask import Blueprint
 from database import Player, Game, db
 from serializers import serialize_player
-from flask import request, Response
+from flask import request, Response, abort
 from util import auth_guard
 from constants import base_games
 
@@ -35,28 +35,47 @@ def delete_player():
 @auth_guard()
 def update_player():
     body = request.get_json()
-    player = Player.query.filter(Player.id == body["id"]).join(Game).first()
-    player.name = body["name"]
-    db.session.add(player)
+    user_id = request.environ.get("user_id")
+    
+    unique_name_found = (
+        db.session.query(Player)
+        .filter(Player.name == body["name"], Player.user_id == user_id)
+        .first()
+    )
+    
+    if unique_name_found == None:
+        player = Player.query.filter(Player.id == body["id"]).join(Game).first()
+        player.name = body["name"]
+        db.session.add(player)
 
-    for game in player.games:
-        updated_game = next(filter(lambda n: n["id"] == game.id, body["games"]), None)
-        game.elo = updated_game["elo"]
-        db.session.add(game)
+        for game in player.games:
+            updated_game = next(filter(lambda n: n["id"] == game.id, body["games"]), None)
+            game.elo = updated_game["elo"]
+            db.session.add(game)
 
-    db.session.commit()
+        db.session.commit()
 
-    return serialize_player(player)
+        return serialize_player(player) 
+    else:
+        abort(409)
 
 
 @player_router.route("/player", methods=["POST"])
 @auth_guard()
 def create_player():
-    print(request.environ.get("user_id"))
-    if request.environ.get("user_id"):
+    user_id = request.environ.get("user_id")
+    name = request.json["name"]
+
+    unique_name_found = (
+        db.session.query(Player)
+        .filter(Player.name == name, Player.user_id == user_id)
+        .first()
+    )
+
+    if unique_name_found == None:
         player = Player(
-            name=request.json["name"],
-            user_id=request.environ.get("user_id"),
+            name=name,
+            user_id=user_id,
             id=str(uuid.uuid4()),
         )
         db.session.add(player)
@@ -75,3 +94,5 @@ def create_player():
         return serialize_player(
             Player.query.filter(Player.id == player.id).join(Game).first()
         )
+    else:
+        abort(409)
