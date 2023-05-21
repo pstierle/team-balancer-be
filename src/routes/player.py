@@ -35,29 +35,19 @@ def delete_player():
 @auth_guard()
 def update_player():
     body = request.get_json()
-    user_id = request.environ.get("user_id")
-    
-    unique_name_found = (
-        db.session.query(Player)
-        .filter(Player.name == body["name"], Player.user_id == user_id)
-        .first()
-    )
-    
-    if unique_name_found == None:
-        player = Player.query.filter(Player.id == body["id"]).join(Game).first()
-        player.name = body["name"]
-        db.session.add(player)
 
-        for game in player.games:
-            updated_game = next(filter(lambda n: n["id"] == game.id, body["games"]), None)
-            game.elo = updated_game["elo"]
-            db.session.add(game)
+    player = Player.query.filter(Player.id == body["id"]).join(Game).first()
+    player.name = body["name"]
+    db.session.add(player)
 
-        db.session.commit()
+    for game in player.games:
+        updated_game = next(filter(lambda n: n["id"] == game.id, body["games"]), None)
+        game.elo = updated_game["elo"]
+        db.session.add(game)
 
-        return serialize_player(player) 
-    else:
-        abort(409)
+    db.session.commit()
+
+    return serialize_player(player)
 
 
 @player_router.route("/player", methods=["POST"])
