@@ -3,7 +3,7 @@ from flask import Blueprint
 from database import Player, Game, db
 from serializers import serialize_player
 from flask import request, Response, abort
-from util import auth_guard
+from util import auth_guard, players_with_bases_game_images
 from constants import base_games
 
 player_router = Blueprint("player_router", __name__)
@@ -18,7 +18,7 @@ def get_players():
         .filter(Player.user_id == request.environ["user_id"])
         .all()
     )
-    return list(map(serialize_player, players))
+    return players_with_bases_game_images(players, request.host_url)
 
 
 @player_router.route("/player", methods=["DELETE"])

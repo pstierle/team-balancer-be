@@ -9,6 +9,22 @@ from constants import base_games
 from database import User
 from database import Player, Game
 
+def players_with_bases_game_images(players: list[Player], host_url: str) -> list[Player]:
+    parsed = list(map(serialize_player, players))
+    
+    for player in parsed:
+        for game in player['games']:
+            base_game = next(filter(lambda x: x['id'] == game['base_game_id'], base_games))
+            game['baseGame'] = base_game_with_icon(base_game, host_url)
+            
+    return parsed        
+
+
+def base_game_with_icon(base_game, host_url):
+    b = base_game
+    b["icon"] = f"{host_url}/static/icons/{base_game['name']}.png"
+    
+    return b
 
 def base_games_with_images(host_url):
     base_games_with_maps = base_games
@@ -32,6 +48,7 @@ def base_games_with_images(host_url):
             idx += 1
 
         base_game["maps"] = maps
+        
     return base_games_with_maps
 
 
