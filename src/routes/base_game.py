@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, abort
 from util import auth_guard
 from database import db, Player
 from util import (
@@ -23,6 +23,9 @@ def get_players():
 def random_map():
     body = request.get_json()
     maps = body["maps"]
+    if len(maps) <= 0:
+        abort(400)
+        
     return random.choice(maps)
 
 
