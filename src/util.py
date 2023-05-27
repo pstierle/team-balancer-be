@@ -1,13 +1,101 @@
 import jwt
 import datetime
 import flask
-import itertools
+import random
 from functools import wraps
 from os import environ, listdir, path
 from serializers import serialize_player
 from constants import base_games
 from database import User
-from database import Player, Game
+from database import Player
+
+def team_diff_by_base_game_id(first_team, second_team, base_game_id):
+    first_sum = 0
+    second_sum = 0
+    for player in first_team:
+        game = next(filter(lambda x: x['base_game_id'] == base_game_id, player['games']))
+        first_sum += game['elo']
+    
+    for player in second_team:
+        game = next(filter(lambda x: x['base_game_id'] == base_game_id, player['games']))
+        second_sum += game['elo']
+        
+    return abs(first_sum - second_sum)
+    
+
+def generate_teams_by_elo(players, base_game_id):
+    teams = []
+    min_diff = 1000
+    choice = None
+    
+    for i in range(20):
+        random.shuffle(players)
+        team = find_equal_partition_min_sum_dif(players, base_game_id)
+        teams.append(team)
+        diff = team_diff_by_base_game_id(team['firstTeamPlayers'], team['secondTeamPlayers'], base_game_id)
+        if diff <= min_diff:
+            choice = team
+            min_diff = diff
+    
+    return choice
+    
+
+def find_equal_partition_min_sum_dif(players, base_game_id):
+    one = []
+    two = []
+    
+    for idx, player in enumerate(players):
+        if idx <= 4:
+            one.append(player)
+        else:
+            two.append(player)
+    
+    total_sum = 0
+    
+    for idx, player in enumerate(players):
+        game = player_game_by_base_game_id(player, base_game_id)
+        total_sum += game.elo
+        if idx < len(one):
+            one[idx] = players[idx]
+        else: 
+            two[idx - len(one)] = players[idx]
+
+    
+    goal = total_sum / 2
+
+    swapped = False
+      
+    while swapped:
+        for j, player in enumerate(one):
+            curSum = 0
+            for p in one:
+                game = next(filter(lambda x: x.base_game_id == base_game_id, p.games))
+                curSum += game.elo 
+            
+            cur_best_diff = abs(goal - curSum)
+            cur_best_index = -1
+            
+            for i, player in enumerate(two):
+                testSum = curSum - player_game_by_base_game_id(one[j]).elo + player_game_by_base_game_id(two[i]).elo
+                diff = abs(goal - testSum)
+                if diff < cur_best_diff:
+                    cur_best_diff = diff
+                    cur_best_index = i
+
+            if cur_best_index >= 0:
+                swapped = True
+                tmp = one[j]
+                one[j] = two[cur_best_index]
+                two[cur_best_index] = tmp
+          
+    one.sort(key=lambda x: player_game_by_base_game_id(x, base_game_id).elo, reverse=True)      
+    two.sort(key=lambda x: player_game_by_base_game_id(x, base_game_id).elo, reverse=True)      
+             
+    return {
+        'firstTeamPlayers': list(map(serialize_player, one)),
+        'secondTeamPlayers': list(map(serialize_player, two)),
+    }
+  
 
 def players_with_bases_game_images(players: list[Player], host_url: str) -> list[Player]:
     parsed = list(map(serialize_player, players))
@@ -17,7 +105,10 @@ def players_with_bases_game_images(players: list[Player], host_url: str) -> list
             base_game = next(filter(lambda x: x['id'] == game['base_game_id'], base_games))
             game['baseGame'] = base_game_with_icon(base_game, host_url)
             
-    return parsed        
+    return parsed     
+
+def player_game_by_base_game_id(player, base_game_id):
+    return next(filter(lambda x: x.base_game_id == base_game_id, player.games))
 
 
 def base_game_with_icon(base_game, host_url):
@@ -50,48 +141,6 @@ def base_games_with_images(host_url):
         base_game["maps"] = maps
         
     return base_games_with_maps
-
-
-def sum_split(objects):
-    total_sum = sum(obj.elo for obj in objects)
-    min_difference = float("inf")
-    divided_lists = None
-
-    for r in range(1, len(objects) // 2 + 1):
-        for combo in itertools.combinations(objects, r):
-            sum1 = sum(obj.elo for obj in combo)
-            sum2 = total_sum - sum1
-            difference = abs(sum1 - sum2)
-
-            if difference < min_difference and len(combo) == len(objects) // 2:
-                min_difference = difference
-                divided_lists = (
-                    list(combo),
-                    [obj for obj in objects if obj not in combo],
-                )
-
-    return divided_lists
-
-
-def players_to_games_by_base_game(players, base_game_id=0):
-    games = [
-        item for sublist in list(map(lambda x: x.games, players)) for item in sublist
-    ]
-    games_by_base_game = list(
-        filter(lambda game: game.base_game_id == base_game_id, games)
-    )
-
-    return games_by_base_game
-
-
-def players_from_games(players: list[Player], games: list[Game]) -> list[Player]:
-    found_players: list[Player] = []
-
-    for game in games:
-        found_player = next(filter(lambda x: x.id == game.player_id, players))
-        found_players.append(serialize_player(found_player))
-
-    return found_players
 
 
 def auth_guard():
